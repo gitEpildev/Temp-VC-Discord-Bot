@@ -1,5 +1,8 @@
 # Temp VC Discord Bot
 
+[![CI](https://github.com/gitEpildev/Temp-VC-Discord-Bot/actions/workflows/ci.yml/badge.svg)](https://github.com/gitEpildev/Temp-VC-Discord-Bot/actions/workflows/ci.yml)
+[![Docker smoke](https://github.com/gitEpildev/Temp-VC-Discord-Bot/actions/workflows/smoke.yml/badge.svg)](https://github.com/gitEpildev/Temp-VC-Discord-Bot/actions/workflows/smoke.yml)
+
 A Discord bot for personal voice rooms. Joining the creator channel makes a voice room and a private text chat with controls.
 
 Maintained by Epildev, Epildevconnect Ltd. Source: [gitEpildev/Temp-VC-Discord-Bot](https://github.com/gitEpildev/Temp-VC-Discord-Bot).

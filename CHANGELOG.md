@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- GitHub Actions checks on Node.js 20, 22 and 24 for lint, formatting, source style, builds and regression tests.
+- PostgreSQL integration tests in a disposable CI database.
+- A production Docker image smoke check without Discord or production credentials.
+- Workflow badges and local smoke instructions.
+
 ## 1.1.1 - 4 November 2026
 
 ### Added
