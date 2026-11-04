@@ -3,11 +3,14 @@ import { ChannelType } from "discord.js";
 import { getConfig, upsertConfig } from "../../services/ConfigService.js";
 
 export async function handleSetLogChannel(
-  interaction: ChatInputCommandInteraction
+  interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   const guildId = interaction.guildId;
   if (!guildId) {
-    await interaction.reply({ content: "This command must be used in a server.", ephemeral: true });
+    await interaction.reply({
+      content: "This command must be used in a server.",
+      ephemeral: true,
+    });
     return;
   }
 

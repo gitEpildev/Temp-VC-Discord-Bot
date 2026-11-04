@@ -1,9 +1,3 @@
-/**
- * Slash Command Definitions - Registered with Discord API
- *
- * These are the /setup, /config, /vc, etc. commands.
- * deploy-commands.ts and index.ts use this array to register them.
- */
 import {
   SlashCommandBuilder,
   type RESTPostAPIChatInputApplicationCommandsJSONBody,
@@ -22,7 +16,7 @@ export const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
     .setName("config")
     .setDescription("View or update guild config")
     .addSubcommand((s) =>
-      s.setName("view").setDescription("View current config")
+      s.setName("view").setDescription("View current config"),
     )
     .addSubcommand((s) =>
       s
@@ -39,12 +33,12 @@ export const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
               { name: "cooldown", value: "cooldown" },
               { name: "deletedelay", value: "deletedelay" },
               { name: "claimtimeout", value: "claimtimeout" },
-              { name: "maxchannelsperuser", value: "maxchannelsperuser" }
-            )
+              { name: "maxchannelsperuser", value: "maxchannelsperuser" },
+            ),
         )
         .addStringOption((o) =>
-          o.setName("value").setDescription("Value").setRequired(true)
-        )
+          o.setName("value").setDescription("Value").setRequired(true),
+        ),
     )
     .toJSON(),
   new SlashCommandBuilder()
@@ -54,7 +48,7 @@ export const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
       o
         .setName("channel")
         .setDescription("Text channel for logs")
-        .setRequired(true)
+        .setRequired(true),
     )
     .toJSON(),
   new SlashCommandBuilder()
@@ -71,7 +65,7 @@ export const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
     .toJSON(),
   new SlashCommandBuilder()
     .setName("reset")
-    .setDescription("Delete all voice rooms and create fresh setup (fixes stuck state)")
+    .setDescription("Reset setup while retaining occupied and protected rooms")
     .toJSON(),
   new SlashCommandBuilder()
     .setName("vc")
@@ -84,8 +78,8 @@ export const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
           o
             .setName("name")
             .setDescription("New channel name (1-100 chars)")
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .addSubcommand((s) =>
       s
@@ -97,20 +91,22 @@ export const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
             .setDescription("Limit 0-99")
             .setRequired(true)
             .setMinValue(0)
-            .setMaxValue(99)
-        )
+            .setMaxValue(99),
+        ),
     )
     .addSubcommand((s) =>
-      s.setName("lock").setDescription("Lock the channel (only you can let others in)")
+      s
+        .setName("lock")
+        .setDescription("Lock the channel (only you can let others in)"),
     )
     .addSubcommand((s) =>
-      s.setName("unlock").setDescription("Unlock the channel")
+      s.setName("unlock").setDescription("Unlock the channel"),
     )
     .addSubcommand((s) =>
-      s.setName("public").setDescription("Make the channel public")
+      s.setName("public").setDescription("Make the channel public"),
     )
     .addSubcommand((s) =>
-      s.setName("private").setDescription("Make the channel private")
+      s.setName("private").setDescription("Make the channel private"),
     )
     .addSubcommand((s) =>
       s
@@ -120,22 +116,19 @@ export const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
           o
             .setName("user")
             .setDescription("User to transfer to")
-            .setRequired(true)
-        )
+            .setRequired(true),
+        ),
     )
     .addSubcommand((s) =>
-      s.setName("claim").setDescription("Claim ownership if the owner left")
+      s.setName("claim").setDescription("Claim ownership if the owner left"),
     )
     .addSubcommand((s) =>
       s
         .setName("unban")
         .setDescription("Unban a user from your voice channel")
         .addUserOption((o) =>
-          o
-            .setName("user")
-            .setDescription("User to unban")
-            .setRequired(true)
-        )
+          o.setName("user").setDescription("User to unban").setRequired(true),
+        ),
     )
     .toJSON(),
 ];

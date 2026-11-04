@@ -3,11 +3,14 @@ import { EmbedBuilder } from "discord.js";
 import { getConfig } from "../../services/ConfigService.js";
 
 export async function handleConfigView(
-  interaction: ChatInputCommandInteraction
+  interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   const guildId = interaction.guildId;
   if (!guildId) {
-    await interaction.reply({ content: "This command must be used in a server.", ephemeral: true });
+    await interaction.reply({
+      content: "This command must be used in a server.",
+      ephemeral: true,
+    });
     return;
   }
 
@@ -27,13 +30,33 @@ export async function handleConfigView(
     .addFields(
       { name: "Enabled", value: config.enabled ? "Yes" : "No", inline: true },
       { name: "Name Template", value: config.nameTemplate, inline: true },
-      { name: "Brand Color", value: config.brandColor, inline: true },
-      { name: "Cooldown (s)", value: String(config.cooldownSeconds), inline: true },
-      { name: "Delete Delay (s)", value: String(config.deleteDelaySeconds), inline: true },
-      { name: "Claim Timeout (s)", value: String(config.claimTimeoutSeconds), inline: true },
-      { name: "Max Channels/User", value: String(config.maxChannelsPerUser), inline: true },
-      { name: "Category ID", value: config.categoryId ?? "—", inline: false },
-      { name: "Log Channel", value: config.logChannelId ? `<#${config.logChannelId}>` : "Not set", inline: true }
+      { name: "Brand Colour", value: config.brandColor, inline: true },
+      {
+        name: "Cooldown (s)",
+        value: String(config.cooldownSeconds),
+        inline: true,
+      },
+      {
+        name: "Delete Delay (s)",
+        value: String(config.deleteDelaySeconds),
+        inline: true,
+      },
+      {
+        name: "Claim Timeout (s)",
+        value: String(config.claimTimeoutSeconds),
+        inline: true,
+      },
+      {
+        name: "Max Channels/User",
+        value: String(config.maxChannelsPerUser),
+        inline: true,
+      },
+      { name: "Category ID", value: config.categoryId ?? "-", inline: false },
+      {
+        name: "Log Channel",
+        value: config.logChannelId ? `<#${config.logChannelId}>` : "Not set",
+        inline: true,
+      },
     )
     .setTimestamp();
 

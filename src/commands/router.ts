@@ -1,8 +1,3 @@
-/**
- * Command Router - Dispatches slash commands to handlers
- *
- * Checks admin permission for admin commands, then routes to the right handler.
- */
 import type { ChatInputCommandInteraction } from "discord.js";
 import { canRunAdminCommand } from "../services/PermissionService.js";
 import { handleSetup } from "./admin/setup.js";
@@ -27,7 +22,7 @@ const ADMIN_COMMANDS = [
 ] as const;
 
 export async function handleCommand(
-  interaction: ChatInputCommandInteraction
+  interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   const name = interaction.commandName;
 

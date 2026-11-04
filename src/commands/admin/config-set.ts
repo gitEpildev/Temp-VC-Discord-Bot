@@ -12,11 +12,14 @@ const OPTIONS = [
 ] as const;
 
 export async function handleConfigSet(
-  interaction: ChatInputCommandInteraction
+  interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   const guildId = interaction.guildId;
   if (!guildId) {
-    await interaction.reply({ content: "This command must be used in a server.", ephemeral: true });
+    await interaction.reply({
+      content: "This command must be used in a server.",
+      ephemeral: true,
+    });
     return;
   }
 
@@ -37,11 +40,17 @@ export async function handleConfigSet(
   switch (opt) {
     case "nametemplate":
       if (value.length < 1 || value.length > 100) {
-        await interaction.reply({ content: "Name template must be 1–100 characters.", ephemeral: true });
+        await interaction.reply({
+          content: "Name template must be 1-100 characters.",
+          ephemeral: true,
+        });
         return;
       }
       if (!value.includes("{username}")) {
-        await interaction.reply({ content: "Name template must include {username}.", ephemeral: true });
+        await interaction.reply({
+          content: "Name template must include {username}.",
+          ephemeral: true,
+        });
         return;
       }
       partial.nameTemplate = value;
@@ -49,47 +58,67 @@ export async function handleConfigSet(
 
     case "brandcolor":
       if (!/^#[0-9A-Fa-f]{6}$/.test(value)) {
-        await interaction.reply({ content: "Brand color must be a hex color (e.g. #5865F2).", ephemeral: true });
+        await interaction.reply({
+          content: "Brand colour must be a hex colour (e.g. #5865F2).",
+          ephemeral: true,
+        });
         return;
       }
       partial.brandColor = value;
       break;
 
-    case "cooldown":
+    case "cooldown": {
       const cooldown = parseInt(value, 10);
       if (isNaN(cooldown) || cooldown < 0 || cooldown > 86400) {
-        await interaction.reply({ content: "Cooldown must be 0–86400 seconds.", ephemeral: true });
+        await interaction.reply({
+          content: "Cooldown must be 0-86400 seconds.",
+          ephemeral: true,
+        });
         return;
       }
       partial.cooldownSeconds = cooldown;
       break;
+    }
 
-    case "deletedelay":
+    case "deletedelay": {
       const dd = parseInt(value, 10);
       if (isNaN(dd) || dd < 0 || dd > 86400) {
-        await interaction.reply({ content: "Delete delay must be 0–86400 seconds.", ephemeral: true });
+        await interaction.reply({
+          content: "Delete delay must be 0-86400 seconds.",
+          ephemeral: true,
+        });
         return;
       }
       partial.deleteDelaySeconds = dd;
       break;
+    }
 
-    case "claimtimeout":
+    case "claimtimeout": {
       const ct = parseInt(value, 10);
       if (isNaN(ct) || ct < 0 || ct > 86400) {
-        await interaction.reply({ content: "Claim timeout must be 0–86400 seconds.", ephemeral: true });
+        await interaction.reply({
+          content: "Claim timeout must be 0-86400 seconds.",
+          ephemeral: true,
+        });
         return;
       }
       partial.claimTimeoutSeconds = ct;
       break;
+    }
 
-    case "maxchannelsperuser":
+    case "maxchannelsperuser": {
       const mc = parseInt(value, 10);
-      if (isNaN(mc) || mc < 1 || mc > 10) {
-        await interaction.reply({ content: "Max channels per user must be 1–10.", ephemeral: true });
+      if (value !== "1") {
+        await interaction.reply({
+          content:
+            "Each user can own one voice room per server. Set this value to 1.",
+          ephemeral: true,
+        });
         return;
       }
       partial.maxChannelsPerUser = mc;
       break;
+    }
 
     default:
       await interaction.reply({

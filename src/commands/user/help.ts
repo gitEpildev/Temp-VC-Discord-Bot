@@ -1,21 +1,20 @@
-/**
- * /help handler - Shows bot info and command list
- */
 import type { ChatInputCommandInteraction, GuildMember } from "discord.js";
 import { EmbedBuilder } from "discord.js";
 import { PermissionFlagsBits } from "discord.js";
 
 export async function handleHelp(
-  interaction: ChatInputCommandInteraction
+  interaction: ChatInputCommandInteraction,
 ): Promise<void> {
   const member = interaction.member as GuildMember | null;
-  const isAdministrator = !!member?.permissions?.has(PermissionFlagsBits.Administrator);
+  const isAdministrator = !!member?.permissions?.has(
+    PermissionFlagsBits.Administrator,
+  );
 
   const embed = isAdministrator
     ? new EmbedBuilder()
         .setTitle("Voice Channel System Setup - Administrator Help")
         .setDescription(
-          "This bot allows dynamic control of temporary voice channels with advanced administrator tools"
+          "This bot allows dynamic control of temporary voice channels with advanced administrator tools",
         )
         .addFields(
           {
@@ -47,14 +46,14 @@ export async function handleHelp(
               "- Use Private for restricted access\n" +
               "- Transfer ownership if needed",
             inline: false,
-          }
+          },
         )
         .setColor(0x5865f2)
         .setFooter({ text: "Keep channels clean and controlled" })
     : new EmbedBuilder()
         .setTitle("Voice Channel System Setup - User Help")
         .setDescription(
-          "This bot allows you to create and manage a temporary voice channel"
+          "This bot allows you to create and manage a temporary voice channel",
         )
         .addFields(
           {
@@ -71,7 +70,7 @@ export async function handleHelp(
               "- Use Private for restricted access\n" +
               "- Ask an administrator if you need help with Admin Lock",
             inline: false,
-          }
+          },
         )
         .setColor(0x5865f2)
         .setFooter({ text: "Keep channels clean and controlled" });

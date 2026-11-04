@@ -1,10 +1,3 @@
-/**
- * Deploy Commands - Register slash commands with Discord
- *
- * Run: npm run deploy-commands
- * Requires BOT_TOKEN and CLIENT_ID in .env.
- * Note: The bot also deploys commands on startup (index.ts).
- */
 import "dotenv/config";
 import { REST, Routes } from "discord.js";
 import { commands } from "./commands/definitions.js";
@@ -21,10 +14,15 @@ const rest = new REST({ version: "10" }).setToken(token);
 
 async function main(): Promise<void> {
   console.log("Deploying commands (global)...");
-  const result = await rest.put(Routes.applicationCommands(clientId as string), {
-    body: commands,
-  });
-  console.log(`Deployed ${Array.isArray(result) ? result.length : 0} commands.`);
+  const result = await rest.put(
+    Routes.applicationCommands(clientId as string),
+    {
+      body: commands,
+    },
+  );
+  console.log(
+    `Deployed ${Array.isArray(result) ? result.length : 0} commands.`,
+  );
 }
 
 main().catch((err) => {

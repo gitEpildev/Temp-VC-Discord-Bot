@@ -24,6 +24,7 @@ services:
       CLIENT_ID: ${CLIENT_ID}
       DATABASE_URL: postgresql://voicebot:voicebot@postgres:5432/voicebot
       BOT_OWNER: ${BOT_OWNER}
+      PROTECTED_CHANNEL_IDS: ${PROTECTED_CHANNEL_IDS:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,9 +1,3 @@
-/**
- * Control Panel UI - Embed, Buttons, Select Menus, Modals
- *
- * Builds the embed and components for the control panel message.
- * Discord limits: 1 select menu per ActionRow, max 5 ActionRows per message.
- */
 import {
   EmbedBuilder,
   ActionRowBuilder,
@@ -17,7 +11,6 @@ import {
 } from "discord.js";
 import type { GuildConfig } from "../db/postgres.js";
 
-// Custom IDs for button/select interactions (must match interactionCreate handler)
 const CUSTOM_IDS = {
   rename: "vc:rename",
   limit: "vc:limit",
@@ -41,7 +34,11 @@ export const MODAL_IDS = {
   limit: "vc:limit:modal",
 } as const;
 
-export function buildControlPanelEmbed(config: GuildConfig): EmbedBuilder {
+export function buildControlPanelEmbed(
+  config: GuildConfig,
+  ownerName?: string,
+  createdAt?: number,
+): EmbedBuilder {
   const color = parseInt(config.brandColor.replace("#", ""), 16) || 0x5865f2;
 
   return new EmbedBuilder()
@@ -52,11 +49,13 @@ export function buildControlPanelEmbed(config: GuildConfig): EmbedBuilder {
         "**Visibility** - Public or private access\n" +
         "**Ownership** - Claim and transfer room ownership\n" +
         "**Moderation** - Kick, ban, and unban members\n" +
-        "**Admin Controls** - Admin only channel lock"
+        "**Admin Controls** - Admin only channel lock",
     )
     .setColor(color)
-    .setFooter({ text: "✧ Galaxy Voice" })
-    .setTimestamp();
+    .setFooter({
+      text: ownerName ? `✧ ${ownerName}'s Voice` : "✧ Voice Controls",
+    })
+    .setTimestamp(createdAt ?? Date.now());
 }
 
 export function buildControlPanelComponents(options?: {
@@ -66,8 +65,8 @@ export function buildControlPanelComponents(options?: {
   const locked = options?.locked ?? false;
   const adminLocked = options?.adminLocked ?? false;
 
-  const row1 = new ActionRowBuilder<MessageActionRowComponentBuilder>()
-    .addComponents(
+  const row1 =
+    new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.rename)
         .setLabel("Rename")
@@ -87,11 +86,11 @@ export function buildControlPanelComponents(options?: {
         .setCustomId(CUSTOM_IDS.adminLock)
         .setLabel(adminLocked ? "Admin Unlock" : "Admin Lock")
         .setEmoji({ name: "🛡️" })
-        .setStyle(adminLocked ? ButtonStyle.Secondary : ButtonStyle.Danger)
+        .setStyle(adminLocked ? ButtonStyle.Secondary : ButtonStyle.Danger),
     );
 
-  const row2 = new ActionRowBuilder<MessageActionRowComponentBuilder>()
-    .addComponents(
+  const row2 =
+    new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(CUSTOM_IDS.public)
         .setLabel("Public")
@@ -116,34 +115,33 @@ export function buildControlPanelComponents(options?: {
         .setCustomId(CUSTOM_IDS.unbanBtn)
         .setLabel("Unban")
         .setEmoji({ name: "✅" })
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
     );
 
-  const row3 = new ActionRowBuilder<MessageActionRowComponentBuilder>()
-    .addComponents(
+  const row3 =
+    new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
       new UserSelectMenuBuilder()
         .setCustomId(CUSTOM_IDS.transfer)
         .setPlaceholder("↗️ Transfer")
         .setMinValues(1)
-        .setMaxValues(1)
+        .setMaxValues(1),
     );
 
-  // Discord: 1 select menu per ActionRow, max 5 ActionRows per message
-  const row4 = new ActionRowBuilder<MessageActionRowComponentBuilder>()
-    .addComponents(
+  const row4 =
+    new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
       new UserSelectMenuBuilder()
         .setCustomId(CUSTOM_IDS.kick)
         .setPlaceholder("👢 Kick")
         .setMinValues(1)
-        .setMaxValues(1)
+        .setMaxValues(1),
     );
-  const row5 = new ActionRowBuilder<MessageActionRowComponentBuilder>()
-    .addComponents(
+  const row5 =
+    new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
       new UserSelectMenuBuilder()
         .setCustomId(CUSTOM_IDS.whitelist)
         .setPlaceholder("🛡 Whitelist")
         .setMinValues(1)
-        .setMaxValues(1)
+        .setMaxValues(1),
     );
   return [row1, row2, row3, row4, row5];
 }
@@ -161,8 +159,8 @@ export function buildRenameModal(): ModalBuilder {
           .setStyle(TextInputStyle.Short)
           .setMinLength(1)
           .setMaxLength(100)
-          .setRequired(true)
-      )
+          .setRequired(true),
+      ),
     );
 }
 
@@ -179,7 +177,7 @@ export function buildLimitModal(): ModalBuilder {
           .setStyle(TextInputStyle.Short)
           .setMinLength(1)
           .setMaxLength(2)
-          .setRequired(true)
-      )
+          .setRequired(true),
+      ),
     );
 }

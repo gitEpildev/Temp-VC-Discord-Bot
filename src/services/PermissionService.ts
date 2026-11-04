@@ -1,10 +1,3 @@
-/**
- * Permission Service - Admin Checks and Channel Permission Overwrites
- *
- * - canRunAdminCommand: server owner or BOT_OWNER
- * - setOwnerPermissions: give room owner lock/unlock, mute, move
- * - setSideChatPermissions: who can see the room's text channel
- */
 import {
   type Guild,
   type GuildMember,
@@ -13,7 +6,6 @@ import {
   PermissionFlagsBits,
 } from "discord.js";
 
-/** Bot owners from BOT_OWNER env (comma-separated user IDs). Can use admin commands in any server. */
 export function getBotOwnerIds(): string[] {
   const raw = process.env.BOT_OWNER ?? "";
   return raw
@@ -26,19 +18,84 @@ export function isBotOwner(userId: string): boolean {
   return getBotOwnerIds().includes(userId);
 }
 
-/** True if the user is the actual owner of the Discord server (guild). */
 export function isGuildOwner(guild: Guild, userId: string): boolean {
   return guild.ownerId === userId;
 }
 
-/** True if the user may run admin commands: bot owner or server owner. */
-export function canRunAdminCommand(guild: Guild | null, userId: string): boolean {
+export function canRunAdminCommand(
+  guild: Guild | null,
+  userId: string,
+): boolean {
   if (!guild) return false;
   return isBotOwner(userId) || isGuildOwner(guild, userId);
 }
 
 export function isAdmin(member: GuildMember): boolean {
-  return member.permissions.has(PermissionFlagsBits.ManageGuild);
+  return (
+    member.permissions.has(PermissionFlagsBits.Administrator) ||
+    member.permissions.has(PermissionFlagsBits.ManageGuild)
+  );
+}
+
+export const ADMIN_LOCK_VOICE_STATUS_TEXT = "Admin Lock On";
+
+async function syncVoiceChannelStatusForAdminLock(
+  voiceChannel: VoiceChannel,
+  adminLockEnabled: boolean,
+): Promise<void> {
+  try {
+    await voiceChannel.client.rest.put(
+      `/channels/${voiceChannel.id}/voice-status`,
+      {
+        body: { status: adminLockEnabled ? ADMIN_LOCK_VOICE_STATUS_TEXT : "" },
+      },
+    );
+  } catch (err) {
+    console.error(
+      `Voice channel status could not be updated for ${voiceChannel.id} (Admin Lock). Guild may lack the feature or the bot may need Manage Channels:`,
+      err,
+    );
+  }
+}
+
+export async function setAdminLockVoicePermissions(
+  voiceChannel: VoiceChannel,
+  ownerId: string,
+  adminLockEnabled: boolean,
+  ownerLockActive: boolean,
+  whitelistUserIds: string[],
+): Promise<void> {
+  const guild = voiceChannel.guild;
+
+  if (adminLockEnabled) {
+    await voiceChannel.permissionOverwrites.edit(guild.id, { Connect: false });
+    await voiceChannel.permissionOverwrites.edit(ownerId, {
+      ManageChannels: true,
+      MuteMembers: true,
+      MoveMembers: true,
+      Connect: true,
+    });
+
+    for (const [, role] of guild.roles.cache) {
+      if (role.id === guild.id) continue;
+      if (
+        role.permissions.has(PermissionFlagsBits.Administrator) ||
+        role.permissions.has(PermissionFlagsBits.ManageGuild)
+      ) {
+        await voiceChannel.permissionOverwrites.edit(role.id, {
+          Connect: true,
+        });
+      }
+    }
+
+    for (const uid of whitelistUserIds) {
+      await voiceChannel.permissionOverwrites.edit(uid, { Connect: true });
+    }
+  } else {
+    await setOwnerPermissions(voiceChannel, ownerId, ownerLockActive);
+  }
+
+  await syncVoiceChannelStatusForAdminLock(voiceChannel, adminLockEnabled);
 }
 
 export function isBot(userId: string, clientUserId: string): boolean {
@@ -48,7 +105,7 @@ export function isBot(userId: string, clientUserId: string): boolean {
 export async function setOwnerPermissions(
   channel: VoiceChannel,
   ownerId: string,
-  lock: boolean
+  lock: boolean,
 ): Promise<void> {
   await channel.permissionOverwrites.edit(ownerId, {
     ManageChannels: true,
@@ -67,7 +124,7 @@ export async function setSideChatPermissions(
   voiceChannel: VoiceChannel,
   ownerId: string,
   memberIds: string[],
-  adminIds: string[]
+  adminIds: string[],
 ): Promise<void> {
   const allIds = new Set([ownerId, ...memberIds, ...adminIds]);
 
@@ -81,7 +138,7 @@ export async function setSideChatPermissions(
 
 export async function addSideChatAccess(
   textChannel: TextChannel,
-  memberId: string
+  memberId: string,
 ): Promise<void> {
   await textChannel.permissionOverwrites.edit(memberId, {
     ViewChannel: true,
@@ -91,11 +148,11 @@ export async function addSideChatAccess(
 
 export async function revokeSideChatAccess(
   textChannel: TextChannel,
-  memberId: string
+  memberId: string,
 ): Promise<void> {
   try {
     await textChannel.permissionOverwrites.delete(memberId);
   } catch {
-    // Overwrite may not exist
+    // Continue if this optional Discord action fails.
   }
 }

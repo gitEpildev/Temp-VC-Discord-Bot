@@ -1,9 +1,5 @@
-/**
- * Voice Service - Core Logic for User Voice Rooms
- *
- * Creates voice + text channel pairs, checks permissions, moves users,
- * manages side chat access, and handles channel lifecycle.
- */
+import { withOwnerLock } from "./OwnershipService.js";
+
 import {
   type Guild,
   type GuildMember,
@@ -12,6 +8,7 @@ import {
   ChannelType,
   PermissionFlagsBits,
 } from "discord.js";
+import { isProtectedChannel } from "./ChannelSafetyService.js";
 import { postControlPanel } from "./ControlPanelService.js";
 import { query, queryOne, queryAll } from "../db/postgres.js";
 import type { GuildConfig } from "../db/postgres.js";
@@ -25,6 +22,7 @@ import {
 } from "./PermissionService.js";
 
 export interface VoiceChannelRow {
+  controlPanelMessageId?: string | null;
   voiceChannelId: string;
   guildId: string;
   textChannelId: string;
@@ -35,33 +33,26 @@ export interface VoiceChannelRow {
   adminLocked: boolean;
 }
 
-/**
- * Get voice room by voice channel ID. Optionally validate guildId for multi-guild safety.
- * Each server has its own config; channel IDs are unique per guild.
- */
 export async function getVoiceChannel(
   voiceChannelId: string,
-  guildId?: string
+  guildId?: string,
 ): Promise<VoiceChannelRow | null> {
   const row = await queryOne<VoiceChannelRow>(
     `SELECT * FROM voice_channels WHERE "voiceChannelId" = $1`,
-    [voiceChannelId]
+    [voiceChannelId],
   );
   if (!row) return null;
-  if (guildId && row.guildId !== guildId) return null; // Ensure channel belongs to this server
+  if (guildId && row.guildId !== guildId) return null;
   return row;
 }
 
-/**
- * Get voice room by text channel ID. Optionally validate guildId for multi-guild safety.
- */
 export async function getVoiceChannelByTextChannelId(
   textChannelId: string,
-  guildId?: string
+  guildId?: string,
 ): Promise<VoiceChannelRow | null> {
   const row = await queryOne<VoiceChannelRow>(
     `SELECT * FROM voice_channels WHERE "textChannelId" = $1`,
-    [textChannelId]
+    [textChannelId],
   );
   if (!row) return null;
   if (guildId && row.guildId !== guildId) return null;
@@ -70,65 +61,33 @@ export async function getVoiceChannelByTextChannelId(
 
 export async function getChannelsByOwner(
   guildId: string,
-  ownerId: string
+  ownerId: string,
+  excludeChannelId: string | null = null,
 ): Promise<number> {
   const result = await queryOne<{ count: string }>(
-    `SELECT COUNT(*) as count FROM voice_channels WHERE "guildId" = $1 AND "ownerId" = $2`,
-    [guildId, ownerId]
+    `SELECT COUNT(*) as count FROM voice_channels WHERE "guildId" = $1 AND "ownerId" = $2 AND ($3::text IS NULL OR "voiceChannelId" <> $3)`,
+    [guildId, ownerId, excludeChannelId],
   );
   return result ? parseInt(result.count, 10) : 0;
-}
-
-export async function cleanupOrphanedChannels(
-  guild: Guild,
-  config: GuildConfig
-): Promise<number> {
-  if (!config.categoryId) return 0;
-  const category = await guild.channels.fetch(config.categoryId).catch(() => null);
-  if (!category || category.type !== ChannelType.GuildCategory) return 0;
-
-  const rows = await queryAll<{ voiceChannelId: string; textChannelId: string }>(
-    `SELECT "voiceChannelId", "textChannelId" FROM voice_channels WHERE "guildId" = $1`,
-    [guild.id]
-  );
-  const knownIds = new Set<string>();
-  for (const r of rows) {
-    knownIds.add(r.voiceChannelId);
-    knownIds.add(r.textChannelId);
-  }
-  knownIds.add(config.creatorChannelId ?? "");
-  knownIds.add(config.controlPanelChannelId ?? "");
-
-  const children = guild.channels.cache.filter((c) => c.parentId === config.categoryId);
-  let cleaned = 0;
-  for (const [, ch] of children) {
-    if (knownIds.has(ch.id)) continue;
-    try {
-      await ch.delete();
-      cleaned++;
-    } catch {
-      /* ignore */
-    }
-  }
-  return cleaned;
 }
 
 export async function canCreateChannel(
   guildId: string,
   userId: string,
-  config: GuildConfig
+  config: GuildConfig,
 ): Promise<{ allowed: boolean; reason?: string }> {
   const count = await getChannelsByOwner(guildId, userId);
-  if (count >= config.maxChannelsPerUser) {
+  if (count >= 1) {
     return {
       allowed: false,
-      reason: `You can only have up to ${config.maxChannelsPerUser} active channel(s).`,
+      reason:
+        "You can own one voice room per server. You can create another room in a different server.",
     };
   }
 
   const cooldown = await queryOne<{ lastCreatedAt: string }>(
     `SELECT "lastCreatedAt" FROM cooldowns WHERE "guildId" = $1 AND "userId" = $2`,
-    [guildId, userId]
+    [guildId, userId],
   );
 
   if (cooldown) {
@@ -149,8 +108,20 @@ export async function canCreateChannel(
 export async function createVoiceChannel(
   guild: Guild,
   member: GuildMember,
-  config: GuildConfig
+  config: GuildConfig,
 ): Promise<{ voiceChannel: VoiceChannel; textChannel: TextChannel }> {
+  return withOwnerLock(guild.id, member.id, () =>
+    createRoom(guild, member, config),
+  );
+}
+
+async function createRoom(
+  guild: Guild,
+  member: GuildMember,
+  config: GuildConfig,
+): Promise<{ voiceChannel: VoiceChannel; textChannel: TextChannel }> {
+  const check = await canCreateChannel(guild.id, member.id, config);
+  if (!check.allowed) throw new Error(check.reason);
   const categoryId = config.categoryId!;
   const channels = guild.channels;
   const category = await channels.fetch(categoryId);
@@ -160,7 +131,7 @@ export async function createVoiceChannel(
 
   const name = applyNameTemplate(
     config.nameTemplate,
-    member.user.username
+    member.user.username,
   ).slice(0, 100);
   const voiceName = name;
   const textName = `💬 ${member.user.username}`.slice(0, 100);
@@ -178,13 +149,41 @@ export async function createVoiceChannel(
     parent: categoryId,
     permissionOverwrites: [
       { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
-      { id: member.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
+      {
+        id: member.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+        ],
+      },
     ],
   });
 
   const now = Date.now();
 
-  await setOwnerPermissions(voiceChannel, member.id, false);
+  await query(
+    `INSERT INTO voice_channels ("voiceChannelId", "guildId", "textChannelId", "ownerId", "createdAt", "lastOwnerSeenAt", "locked", "adminLocked")
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [
+      voiceChannel.id,
+      guild.id,
+      textChannel.id,
+      member.id,
+      now,
+      now,
+      false,
+      false,
+    ],
+  );
+
+  try {
+    await setOwnerPermissions(voiceChannel, member.id, false);
+  } catch (e) {
+    console.error(
+      "setOwnerPermissions failed on new voice channel (channel may have been deleted):",
+      e,
+    );
+  }
 
   const voiceMembers = voiceChannel.members;
   const memberIds = Array.from(voiceMembers.keys());
@@ -198,22 +197,15 @@ export async function createVoiceChannel(
     voiceChannel,
     member.id,
     [],
-    adminIds
-  );
-
-  await query(
-    `INSERT INTO voice_channels ("voiceChannelId", "guildId", "textChannelId", "ownerId", "createdAt", "lastOwnerSeenAt", "locked", "adminLocked")
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [voiceChannel.id, guild.id, textChannel.id, member.id, now, now, false, false]
+    adminIds,
   );
 
   await query(
     `INSERT INTO cooldowns ("guildId", "userId", "lastCreatedAt") VALUES ($1, $2, $3)
      ON CONFLICT ("guildId", "userId") DO UPDATE SET "lastCreatedAt" = $3`,
-    [guild.id, member.id, now]
+    [guild.id, member.id, now],
   );
 
-  // Move user into the new room BEFORE posting control panel (so move succeeds even if panel fails)
   try {
     await guild.members.edit(member.id, {
       channel: voiceChannel.id,
@@ -234,60 +226,71 @@ export async function createVoiceChannel(
 
 export async function deleteVoiceChannel(
   guildId: string,
-  voiceChannelId: string
+  voiceChannelId: string,
 ): Promise<void> {
-  await query(`DELETE FROM voice_channels WHERE "voiceChannelId" = $1`, [
-    voiceChannelId,
-  ]);
+  if (isProtectedChannel(voiceChannelId)) return;
+  await query(
+    `DELETE FROM voice_channels WHERE "guildId" = $1 AND "voiceChannelId" = $2`,
+    [guildId, voiceChannelId],
+  );
 }
 
 export async function updateOwner(
   voiceChannelId: string,
-  newOwnerId: string
+  newOwnerId: string,
 ): Promise<void> {
-  const now = Date.now();
-  await query(
-    `UPDATE voice_channels SET "ownerId" = $2, "lastOwnerSeenAt" = $3 WHERE "voiceChannelId" = $1`,
-    [voiceChannelId, newOwnerId, now]
-  );
+  const row = await getVoiceChannel(voiceChannelId);
+  if (!row) throw new Error("Voice room not found.");
+  await withOwnerLock(row.guildId, newOwnerId, async () => {
+    if (
+      (await getChannelsByOwner(row.guildId, newOwnerId, voiceChannelId)) >= 1
+    ) {
+      throw new Error("This user already owns a voice room in this server.");
+    }
+    const now = Date.now();
+    await query(
+      `UPDATE voice_channels SET "ownerId" = $2, "lastOwnerSeenAt" = $3 WHERE "voiceChannelId" = $1`,
+      [voiceChannelId, newOwnerId, now],
+    );
+  });
 }
 
 export async function updateLastOwnerSeen(
   voiceChannelId: string,
-  timestamp: number
+  timestamp: number,
 ): Promise<void> {
   await query(
     `UPDATE voice_channels SET "lastOwnerSeenAt" = $2 WHERE "voiceChannelId" = $1`,
-    [voiceChannelId, timestamp]
+    [voiceChannelId, timestamp],
   );
 }
 
 export async function setLocked(
   voiceChannelId: string,
-  locked: boolean
+  locked: boolean,
 ): Promise<void> {
   await query(
     `UPDATE voice_channels SET "locked" = $2 WHERE "voiceChannelId" = $1`,
-    [voiceChannelId, locked]
+    [voiceChannelId, locked],
   );
 }
 
 export async function setAdminLock(
   voiceChannelId: string,
-  locked: boolean
+  locked: boolean,
 ): Promise<void> {
   await query(
     `UPDATE voice_channels SET "adminLocked" = $2 WHERE "voiceChannelId" = $1`,
-    [voiceChannelId, locked]
+    [voiceChannelId, locked],
   );
 }
 
 export async function getOrphanedVoiceChannels(
-  config: GuildConfig
+  config: GuildConfig,
 ): Promise<VoiceChannelRow[]> {
   const rows = await queryAll<VoiceChannelRow>(
     `SELECT * FROM voice_channels WHERE "guildId" = $1`,
-    [config.guildId]
+    [config.guildId],
   );
 
   const now = Date.now();
@@ -302,7 +305,7 @@ export async function getOrphanedVoiceChannels(
 export async function syncSideChatPermissions(
   voiceChannel: VoiceChannel,
   textChannel: TextChannel,
-  ownerId: string
+  ownerId: string,
 ): Promise<void> {
   const memberIds = Array.from(voiceChannel.members.keys());
   const adminIds = memberIds.filter((id) => {
@@ -310,19 +313,25 @@ export async function syncSideChatPermissions(
     return m && isAdmin(m);
   });
 
-  await setSideChatPermissions(textChannel, voiceChannel, ownerId, memberIds, adminIds);
+  await setSideChatPermissions(
+    textChannel,
+    voiceChannel,
+    ownerId,
+    memberIds,
+    adminIds,
+  );
 }
 
 export async function addMemberToSideChat(
   textChannel: TextChannel,
-  memberId: string
+  memberId: string,
 ): Promise<void> {
   await addSideChatAccess(textChannel, memberId);
 }
 
 export async function removeMemberFromSideChat(
   textChannel: TextChannel,
-  memberId: string
+  memberId: string,
 ): Promise<void> {
   await revokeSideChatAccess(textChannel, memberId);
 }

@@ -1,19 +1,5 @@
-/**
- * Config Service - Guild Configuration (Per-Server Settings)
- *
- * Each Discord server (guild) has its own config, keyed by guildId for uniqueness.
- * Config includes: category, creator channel, delete delay, name template, etc.
- * Multi-guild: different servers can have different channel configs.
- */
+import { query, queryOne, queryAll, type GuildConfig } from "../db/postgres.js";
 
-import {
-  query,
-  queryOne,
-  queryAll,
-  type GuildConfig,
-} from "../db/postgres.js";
-
-// Default values when a setting is not in the DB
 const DEFAULTS = {
   nameTemplate: "{username}'s Room",
   brandColor: "#5865F2",
@@ -36,48 +22,41 @@ export type ResolvedGuildConfig = GuildConfig & {
   maxChannelsPerUser: number;
 };
 
-/**
- * Get config for a guild. Merges DB row with DEFAULTS.
- * Returns null if guild has not run /setup.
- */
 export async function getConfig(
-  guildId: string
+  guildId: string,
 ): Promise<ResolvedGuildConfig | null> {
   const row = await queryOne<GuildConfig>(
     `SELECT * FROM guild_config WHERE "guildId" = $1`,
-    [guildId]
+    [guildId],
   );
   if (!row) return null;
-  return { ...DEFAULTS, ...row } as ResolvedGuildConfig;
+  return { ...DEFAULTS, ...row, maxChannelsPerUser: 1 } as ResolvedGuildConfig;
 }
 
-/**
- * Update specific config fields for a guild (partial update).
- */
 export async function upsertConfig(
   guildId: string,
-  partial: Partial<Omit<GuildConfig, "guildId">>
+  partial: Partial<Omit<GuildConfig, "guildId">>,
 ): Promise<void> {
   const keys = Object.keys(partial).filter(
-    (k) => partial[k as keyof typeof partial] !== undefined
+    (k) => partial[k as keyof typeof partial] !== undefined,
   ) as (keyof Omit<GuildConfig, "guildId">)[];
   if (keys.length === 0) return;
 
   const setClause = keys.map((k, i) => `"${k}" = $${i + 2}`).join(", ");
-  const values = [guildId, ...keys.map((k) => (partial as Record<string, unknown>)[k])];
+  const values = [
+    guildId,
+    ...keys.map((k) => (partial as Record<string, unknown>)[k]),
+  ];
 
   await query(
     `UPDATE guild_config SET ${setClause} WHERE "guildId" = $1`,
-    values
+    values,
   );
 }
 
-/**
- * Insert or update full guild config (used by /setup and /reset).
- */
 export async function upsertConfigFull(
   guildId: string,
-  data: Partial<GuildConfig>
+  data: Partial<GuildConfig>,
 ): Promise<void> {
   const full = {
     enabled: data.enabled ?? 1,
@@ -90,8 +69,9 @@ export async function upsertConfigFull(
     brandColor: data.brandColor ?? DEFAULTS.brandColor,
     cooldownSeconds: data.cooldownSeconds ?? DEFAULTS.cooldownSeconds,
     deleteDelaySeconds: data.deleteDelaySeconds ?? DEFAULTS.deleteDelaySeconds,
-    claimTimeoutSeconds: data.claimTimeoutSeconds ?? DEFAULTS.claimTimeoutSeconds,
-    maxChannelsPerUser: data.maxChannelsPerUser ?? DEFAULTS.maxChannelsPerUser,
+    claimTimeoutSeconds:
+      data.claimTimeoutSeconds ?? DEFAULTS.claimTimeoutSeconds,
+    maxChannelsPerUser: 1,
   };
 
   await query(
@@ -128,16 +108,13 @@ export async function upsertConfigFull(
       full.deleteDelaySeconds,
       full.claimTimeoutSeconds,
       full.maxChannelsPerUser,
-    ]
+    ],
   );
 }
 
-/**
- * Get all guild IDs that have config (for startup recovery).
- */
 export async function getGuildIds(): Promise<string[]> {
   const rows = await queryAll<{ guildId: string }>(
-    `SELECT "guildId" FROM guild_config`
+    `SELECT "guildId" FROM guild_config`,
   );
   return rows.map((r) => r.guildId);
 }

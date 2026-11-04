@@ -1,11 +1,3 @@
-/**
- * Migration Runner - Standalone Script
- *
- * Run with: npm run migrate
- * Connects to the database and runs all SQL migrations in db/migrations/.
- * Use this when setting up a new database or after pulling new migration files.
- */
-
 import "dotenv/config";
 import { initDb, closeDb } from "./postgres.js";
 
