@@ -42,9 +42,9 @@ export async function recoverGuild(
         voice?.type === ChannelType.GuildVoice &&
         text?.type === ChannelType.GuildText
       ) {
+        await syncSideChatPermissions(voice, text, row.ownerId);
         if (await ensureRoomControlPanel(text, config, guild.client.user!.id))
           repaired++;
-        await syncSideChatPermissions(voice, text, row.ownerId);
       }
       if (config.enabled)
         scheduleEmptyRoomDeletion(

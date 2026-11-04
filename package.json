@@ -1,6 +1,6 @@
 {
   "name": "voice-chat-bot",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Discord temporary voice rooms with per-server ownership and safe cleanup",
   "type": "module",
   "main": "dist/index.js",
@@ -11,12 +11,12 @@
     "deploy-commands": "tsx src/deploy-commands.ts",
     "migrate": "tsx src/db/migrate.ts",
     "lint": "eslint src",
-    "format": "prettier --write src tests README.md RESET.md package.json",
+    "format": "prettier --write src tests docs README.md RESET.md CHANGELOG.md package.json",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "test": "node --import tsx --test tests/*.test.ts",
-    "format:check": "prettier --check src tests README.md RESET.md package.json"
+    "format:check": "prettier --check src tests docs README.md RESET.md CHANGELOG.md package.json"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -35,5 +35,6 @@
     "prettier": "^3.3.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
-  }
+  },
+  "license": "SEE LICENSE IN LICENSE"
 }

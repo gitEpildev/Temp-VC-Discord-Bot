@@ -1,3 +1,4 @@
+import { buildInviteUrl } from "../../utils/invite.js";
 import { fetchChannel } from "../../services/ChannelSafetyService.js";
 
 import type { ChatInputCommandInteraction } from "discord.js";
@@ -72,7 +73,7 @@ export async function handleSetup(
     const msg = err instanceof Error ? err.message : "Unknown error";
     await interaction
       .editReply({
-        content: `❌ **Setup failed:** ${msg}\n\nIf you see "Missing Permissions", re-invite the bot with Administrator.`,
+        content: `❌ **Setup failed:** ${msg}\n\nIf you see "Missing Permissions", check the bot permissions: ${buildInviteUrl(interaction.client.user!.id)}`,
       })
       .catch(() => {});
   }

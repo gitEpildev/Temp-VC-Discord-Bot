@@ -1,3 +1,4 @@
+import { buildInviteUrl } from "../../utils/invite.js";
 import type { ChatInputCommandInteraction } from "discord.js";
 import { ChannelType } from "discord.js";
 import { query, queryAll } from "../../db/postgres.js";
@@ -95,7 +96,7 @@ export async function handleReset(
     const msg = err instanceof Error ? err.message : String(err);
     await interaction
       .editReply({
-        content: `❌ **Reset failed:** ${msg}\n\nIf you see "Missing Permissions", re-invite the bot with Administrator: \`https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scope=bot%20applications.commands\``,
+        content: `❌ **Reset failed:** ${msg}\n\nIf you see "Missing Permissions", check the bot permissions: ${buildInviteUrl(interaction.client.user!.id)}`,
       })
       .catch(() => {});
   }

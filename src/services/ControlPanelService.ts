@@ -15,7 +15,12 @@ async function roomPanel(channel: TextChannel, config: GuildConfig) {
   const owner = room
     ? await channel.guild.members.fetch(room.ownerId).catch(() => null)
     : null;
-  const ownerName = room ? (owner?.displayName ?? "Room owner") : undefined;
+  const username = owner?.user.username;
+  const ownerName = room
+    ? username
+      ? username.charAt(0).toUpperCase() + username.slice(1)
+      : "Room owner"
+    : undefined;
   return {
     embed: buildControlPanelEmbed(
       config,

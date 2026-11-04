@@ -228,7 +228,12 @@ test("repair edits an old panel beyond the first message page", async () => {
     id: "text",
     guild: {
       id: "server-a",
-      members: { fetch: async () => ({ displayName: "Epildev" }) },
+      members: {
+        fetch: async () => ({
+          displayName: "Unrelated server nickname",
+          user: { username: "epildev" },
+        }),
+      },
     },
     messages: {
       fetch: async () => {

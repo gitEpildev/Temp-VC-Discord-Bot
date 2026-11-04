@@ -150,6 +150,17 @@ async function createRoom(
     permissionOverwrites: [
       { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
       {
+        id: guild.client.user!.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ReadMessageHistory,
+          PermissionFlagsBits.ManageChannels,
+          PermissionFlagsBits.ManageRoles,
+        ],
+      },
+      {
         id: member.id,
         allow: [
           PermissionFlagsBits.ViewChannel,

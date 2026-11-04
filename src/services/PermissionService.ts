@@ -107,6 +107,7 @@ export async function setOwnerPermissions(
   ownerId: string,
   lock: boolean,
 ): Promise<void> {
+  await ensureBotChannelAccess(channel);
   await channel.permissionOverwrites.edit(ownerId, {
     ManageChannels: true,
     MuteMembers: true,
@@ -119,6 +120,20 @@ export async function setOwnerPermissions(
   });
 }
 
+export async function ensureBotChannelAccess(
+  channel: VoiceChannel | TextChannel,
+): Promise<void> {
+  const botId = channel.client.user!.id;
+  await channel.permissionOverwrites.edit(botId, {
+    ViewChannel: true,
+    ManageChannels: true,
+    ManageRoles: true,
+    ...(channel.isVoiceBased()
+      ? { Connect: true, MoveMembers: true, MuteMembers: true }
+      : { SendMessages: true, EmbedLinks: true, ReadMessageHistory: true }),
+  });
+}
+
 export async function setSideChatPermissions(
   textChannel: TextChannel,
   voiceChannel: VoiceChannel,
@@ -126,6 +141,8 @@ export async function setSideChatPermissions(
   memberIds: string[],
   adminIds: string[],
 ): Promise<void> {
+  await ensureBotChannelAccess(voiceChannel);
+  await ensureBotChannelAccess(textChannel);
   const allIds = new Set([ownerId, ...memberIds, ...adminIds]);
 
   for (const id of allIds) {
@@ -150,6 +167,7 @@ export async function revokeSideChatAccess(
   textChannel: TextChannel,
   memberId: string,
 ): Promise<void> {
+  if (memberId === textChannel.client.user?.id) return;
   try {
     await textChannel.permissionOverwrites.delete(memberId);
   } catch {

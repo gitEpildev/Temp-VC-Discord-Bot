@@ -20,14 +20,14 @@ export async function handleHelp(
           {
             name: "How to Use",
             value:
-              "- Join a voice channel to create or manage it\n" +
+              "- Join the creator channel to create or manage it\n" +
               "- Use the control panel buttons to manage settings",
             inline: false,
           },
           {
             name: "Permissions Required",
             value:
-              "- Administrator permission is required for full control\n" +
+              "- Use the permission-specific invite in the project README\n" +
               "- Admin Lock is only available to administrators who own the voice channel",
             inline: false,
           },
@@ -59,7 +59,7 @@ export async function handleHelp(
           {
             name: "How to Use",
             value:
-              "- Join a voice channel to create your room\n" +
+              "- Join the creator channel to create your room\n" +
               "- Use the control panel to rename, set a limit, and manage access",
             inline: false,
           },

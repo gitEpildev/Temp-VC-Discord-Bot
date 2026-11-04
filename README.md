@@ -2,13 +2,13 @@
 
 A Discord bot for personal voice rooms. Joining the creator channel makes a voice room and a private text chat with controls.
 
-Maintained by Blake McBride, Epildevconnect Ltd. Source: [gitEpildev/Temp-VC-Discord-Bot](https://github.com/gitEpildev/Temp-VC-Discord-Bot).
+Maintained by Epildev, Epildevconnect Ltd. Source: [gitEpildev/Temp-VC-Discord-Bot](https://github.com/gitEpildev/Temp-VC-Discord-Bot).
 
 ## Room behaviour
 
 - Each user can own one room per server. Owning a room in one server does not prevent creation in another.
 - Creation, transfer and claim share a database lock to enforce the ownership limit.
-- Room panels show the owner's server display name, for example `✧ Epildev's Voice`, with the original room creation timestamp. Discord displays the time in the viewer's local format.
+- Room panels show the owner's username with an initial capital, for example `✧ Epildev's Voice`, with the original room creation timestamp. Discord displays the time in the viewer's local format.
 - Empty rooms are removed after the configured delay, which defaults to 10 seconds. Occupancy is checked again immediately before deletion. Bots count as occupants.
 - Joining a room cancels pending deletion. Mute and deafen changes do not trigger room cleanup.
 - Recovery retains room records when Discord returns a permission or network error. Unrecognised channels are never removed automatically.
@@ -40,11 +40,7 @@ Set these environment variables:
 
 The two built-in protected IDs remain protected even when the environment variable is empty.
 
-Invite the bot using your application ID:
-
-```text
-https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scope=bot%20applications.commands
-```
+[Invite the bot](https://discord.com/oauth2/authorize?client_id=1476740098711224352&permissions=281475267251216&scope=bot%20applications.commands&integration_type=0) with the permissions required by this application. See the [permission guide](docs/permissions.md) for the complete list and instructions for another bot application.
 
 Start the bot:
 
@@ -112,4 +108,19 @@ Use `npm run format` to apply formatting. Source comments use short `//` explana
 | `src/utils`    | Timers and validation                                       |
 | `tests`        | Regression tests for room safety and ownership              |
 
-See [RESET.md](RESET.md) for recovery steps and [LICENSE](LICENSE) for the MIT licence.
+## Documentation
+
+- [Documentation index](docs/README.md)
+- [Configuration](docs/configuration.md)
+- [Permissions and invitation](docs/permissions.md)
+- [Deployment and recovery](docs/deployment.md)
+- [Development](docs/development.md)
+- [Changelog](CHANGELOG.md)
+
+## Licence and attribution
+
+Copyright (c) 2026 Epildevconnect Ltd (Epildev). Distributed under the [MIT License with Additional Terms](LICENSE). Read the full licence for attribution, branding, resale and other conditions.
+
+Epildevconnect Ltd is registered in England and Wales, Company No. 17247566.
+
+[GitHub](https://github.com/GitEpildev) · [Website](https://developer.epildevconnect.uk/) · Discord: Epildev

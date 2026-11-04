@@ -37,7 +37,7 @@ async function runRecovery(): Promise<void> {
   }
 }
 
-client.once("ready", async () => {
+client.once("clientReady", async () => {
   console.log(`Logged in as ${client.user?.tag}`);
 
   const clientId = client.user?.id;
